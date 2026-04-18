@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple Sentiment Analyzer</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      /* Background with gradient overlay and image */
+      background:
+        linear-gradient(rgba(40, 30, 80, 0.6), rgba(0, 180, 200, 0.6)),
+        url('https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&w=1600&q=80');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: #333;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      padding: 30px 40px;
+      width: 400px;
+      max-width: 90%;
+      text-align: center;
+      animation: fadeIn 0.8s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      color: #2d3436;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      color: #555;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      border-radius: 12px;
+      border: 1px solid #b2bec3;
+      padding: 10px 12px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+      transition: all 0.3s ease;
+      background-color: #fafafa;
+    }
+
+    textarea:focus {
+      border-color: #a29bfe;
+      box-shadow: 0 0 8px rgba(162, 155, 254, 0.6);
+    }
+
+    .btn-container {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    #analyzeBtn {
+      background: linear-gradient(135deg, #6c5ce7, #00cec9);
+      color: #fff;
+    }
+
+    #analyzeBtn:hover {
+      filter: brightness(1.15);
+      transform: translateY(-2px);
+    }
+
+    #clearBtn {
+      background: linear-gradient(135deg, #d63031, #ff7675);
+      color: #fff;
+    }
+
+    #clearBtn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+    }
+
+    .result {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 10px;
+      background: #f8f9fd;
+      text-align: left;
+      border: 1px solid #dfe6e9;
+    }
+
+    .label { font-weight: 700; color: #2d3436; }
+    .score { font-family: monospace; margin-left: 8px; color: #636e72; }
+    .highlights { margin-top: 10px; }
+
+    .word {
+      padding: 4px 6px;
+      border-radius: 6px;
+      margin: 4px 4px 0 0;
+      display: inline-block;
+    }
+
+    .pos { background: #e6ffef; color: #00b894; font-weight: 500; }
+    .neg { background: #ffecec; color: #d63031; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Simple Sentiment Analyzer 💬</h1>
+    <p>Paste text below and click <strong>Analyze</strong>.</p>
+
+    <textarea id="text" placeholder="Type or paste text here...">I love this product! The UI is great but the support was disappointing.</textarea>
+
+    <div class="btn-container">
+      <button id="analyzeBtn">Analyze</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+
+    <div id="out" class="result" style="display:none;">
+      <div><span class="label">Sentiment:</span> <span id="label"></span><span class="score" id="score"></span></div>
+      <div class="highlights" id="highlights"></div>
+    </div>
+  </div>
+
+  <script>
+    const posWords = new Set(["good","great","excellent","love","loved","nice","happy","awesome","amazing","best","fantastic","pleasant","enjoy","enjoyed","like","liked","positive"]);
+    const negWords = new Set(["bad","terrible","awful","hate","hated","disappointing","disappoint","worst","poor","sad","angry","problem","issue","negative","slow","error","bug","annoying"]);
+
+    function tokenize(text) {
+      return text.toLowerCase().replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(Boolean);
+    }
+
+    function analyze(text) {
+      const tokens = tokenize(text);
+      let score = 0, posHits = [], negHits = [];
+      for (const t of tokens) {
+        if (posWords.has(t)) { score += 1; posHits.push(t); }
+        else if (negWords.has(t)) { score -= 1; negHits.push(t); }
+      }
+
+      const total = Math.max(tokens.length, 1);
+      const normalized = Math.round((score / total) * 100) / 100;
+      let label = "Neutral";
+      if (normalized > 0.02) label = "Positive";
+      else if (normalized < -0.02) label = "Negative";
+      return { label, score: normalized, posHits, negHits };
+    }
+
+    document.getElementById('analyzeBtn').addEventListener('click', () => {
+      const text = document.getElementById('text').value.trim();
+      if (!text) return alert('Please enter text to analyze.');
+      const res = analyze(text);
+      document.getElementById('label').textContent = res.label;
+      document.getElementById('score').textContent = ` (score: ${res.score})`;
+      const highlights = document.getElementById('highlights');
+      highlights.innerHTML = '';
+      if (res.posHits.length) {
+        const title = document.createElement('div'); title.textContent = 'Positive words:'; highlights.appendChild(title);
+        res.posHits.forEach(w => { const span = document.createElement('span'); span.className='word pos'; span.textContent = w; highlights.appendChild(span); });
+      }
+      if (res.negHits.length) {
+        const title = document.createElement('div'); title.textContent = 'Negative words:'; highlights.appendChild(title);
+        res.negHits.forEach(w => { const span = document.createElement('span'); span.className='word neg'; span.textContent = w; highlights.appendChild(span); });
+      }
+      document.getElementById('out').style.display = 'block';
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      document.getElementById('text').value = '';
+      document.getElementById('out').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
